@@ -161,21 +161,3 @@
 
 ---
 
-## 七、更新 GitHub 流程
-
-修改代码或文档后，将变更推送到本仓库的流程如下（在插件目录下执行）：
-
-```powershell
-cd "你的插件路径\astrbot_plugin_comfyui"
-git add -A
-git status
-git commit -m "描述本次修改（如：fix: 修复 xxx / docs: 更新 README）"
-git push origin main
-```
-
-- 首次推送或未配置远程时，需先添加远程并推送：  
-  `git remote add origin https://github.com/cjxzdzh/astrbot_plugin_comfyui.git`  
-  `git push -u origin main`
-- 使用脚本一键提交并推送（会提交所有变更并 push）：  
-  `.\publish_to_github.ps1 -RepoUrl "https://github.com/cjxzdzh/astrbot_plugin_comfyui.git"`  
-  注意：该脚本会执行 `git add -A` 与 `git commit`，若没有变更会提示 "No changes to commit" 并退出。
