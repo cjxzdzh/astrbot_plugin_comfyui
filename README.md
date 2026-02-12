@@ -1,6 +1,20 @@
 # AstrBot ComfyUI 工作流插件
 
+本插件**完整由 AI 创建与制作**（需求分析、架构设计、代码实现、文档与发布流程均在 AI 辅助下完成）。
+
 将 ComfyUI 工作流封装为 LLM 可调用的工具，支持在插件配置界面中管理工作流文件、为每个工作流填写说明（供 LLM 选择），并实现「执行 / 查询工作流列表 / 等待查询 / ComfyUI 状态」四类能力。
+
+---
+
+## 目标功能
+
+在 ComfyUI 中**仅使用约定好的几类节点**（Simple String、ETN_LoadImageBase64、VHS_LoadVideo），即可快速搭建并接入 AstrBot，实现：
+
+- **文生图**：由 LLM 根据用户描述生成提示词，注入到工作流的 Simple String，一键出图。
+- **改图（图生图）**：用户发图 + 文字要求，LLM 调用工作流，将图片（Base64 节点）与修改说明（Simple String）注入，完成风格/内容修改。
+- **多图改图**：多张输入图（如原图 + 参考图）+ 一段文本说明，对应多图 + 单文本工作流，由本插件按顺序注入。
+
+无需手写 API 或脚本，只需在 ComfyUI 里用指定节点设计工作流、导出 JSON 并按规范命名，上传到本插件即可被 LLM 自动选用并执行。
 
 ---
 
@@ -145,3 +159,24 @@
 - 工作流中**仅** Simple String、ETN_LoadImageBase64、VHS_LoadVideo 会被本插件替换；其他节点请勿依赖「由本插件注入」的文本/图/视频。  
 - 工作流文件名必须符合 **`工作流名+文本N+图片M+视频K.json`** 规范，否则无法正确匹配参数数量。  
 - 推荐安装 [astrbot_plugin_image_url_base64_to_mcp](https://github.com/Thetail001/astrbot_plugin_image_url_base64_to_mcp)，以便在「用户引用之前消息的图」时通过 `get_image_from_context` + `image_urls` 完成改图。
+
+---
+
+## 七、更新 GitHub 流程
+
+修改代码或文档后，将变更推送到本仓库的流程如下（在插件目录下执行）：
+
+```powershell
+cd "你的插件路径\astrbot_plugin_comfyui"
+git add -A
+git status
+git commit -m "描述本次修改（如：fix: 修复 xxx / docs: 更新 README）"
+git push origin main
+```
+
+- 首次推送或未配置远程时，需先添加远程并推送：  
+  `git remote add origin https://github.com/cjxzdzh/astrbot_plugin_comfyui.git`  
+  `git push -u origin main`
+- 使用脚本一键提交并推送（会提交所有变更并 push）：  
+  `.\publish_to_github.ps1 -RepoUrl "https://github.com/cjxzdzh/astrbot_plugin_comfyui.git"`  
+  注意：该脚本会执行 `git add -A` 与 `git commit`，若没有变更会提示 "No changes to commit" 并退出。
