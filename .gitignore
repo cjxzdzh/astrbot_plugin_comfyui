@@ -13,9 +13,8 @@ __pycache__/
 ADD_TO_OFFICIAL_MARKET.md
 PUBLISH.md
 
-# Local-only script and metadata (do not push to GitHub)
+# Local-only script (do not push to GitHub)
 publish_to_github.ps1
-metadata.yaml
 remove_tracked_once.ps1
 
 # Logs
