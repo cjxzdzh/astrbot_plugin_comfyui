@@ -9,6 +9,9 @@ __pycache__/
 .env.local
 *.local
 
+# Local-only doc (not for public repo)
+ADD_TO_OFFICIAL_MARKET.md
+
 # Logs
 *.log
 
