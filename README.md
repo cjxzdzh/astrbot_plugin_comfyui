@@ -8,13 +8,12 @@
 
 ## 目标功能
 
-在 ComfyUI 中**仅使用约定好的几类节点**（Simple String、ETN_LoadImageBase64、VHS_LoadVideo），即可快速搭建并接入 AstrBot，实现：
+**任意**在 ComfyUI 上能跑通的工作流，只要把「需要由 LLM/用户传入」的**文本、图片、视频**入口，换成约定好的几类节点（Simple String、ETN_LoadImageBase64、VHS_LoadVideo），即可接入 AstrBot，由 LLM 自动注入参数并执行。能做什么完全取决于你在 ComfyUI 里设计的工作流本身，本插件不做能力限制。
 
-- **文生图**：由 LLM 根据用户描述生成提示词，注入到工作流的 Simple String，一键出图。
-- **改图（图生图）**：用户发图 + 文字要求，LLM 调用工作流，将图片（Base64 节点）与修改说明（Simple String）注入，完成风格/内容修改。
-- **多图改图**：多张输入图（如原图 + 参考图）+ 一段文本说明，对应多图 + 单文本工作流，由本插件按顺序注入。
+- **约定**：可注入的入口仅限上述三类节点——文本用 Simple String，图片用 Base64 节点，视频用 VHS_LoadVideo；工作流里其他逻辑（模型、采样、ControlNet、多步推理等）一律保持原样。
+- **流程**：在 ComfyUI 中设计好工作流 → 导出 API 格式 JSON → 按规范命名（见第四节）→ 上传到本插件并填写说明，即可被 LLM 选用并调用。
 
-无需手写 API 或脚本，只需在 ComfyUI 里用指定节点设计工作流、导出 JSON 并按规范命名，上传到本插件即可被 LLM 自动选用并执行。
+例如：文生图（提示词注入 Simple String）、改图（图 + 修改说明分别注入 Base64 与 Simple String）、多图改图（多张图 + 一段说明）、图生文、风格迁移、视频处理等，只要工作流里用这些节点接好输入，都可以实现。
 
 ---
 
