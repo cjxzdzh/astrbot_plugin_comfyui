@@ -15,6 +15,7 @@ ADD_TO_OFFICIAL_MARKET.md
 # Local-only script and metadata (do not push to GitHub)
 publish_to_github.ps1
 metadata.yaml
+remove_tracked_once.ps1
 
 # Logs
 *.log
