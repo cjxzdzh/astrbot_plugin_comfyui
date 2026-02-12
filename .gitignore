@@ -1,0 +1,23 @@
+# Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Local config / secrets (do not commit)
+.env
+.env.local
+*.local
+
+# Logs
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

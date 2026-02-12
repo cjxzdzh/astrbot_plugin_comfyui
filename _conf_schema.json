@@ -1,0 +1,48 @@
+{
+  "server_ip": {
+    "description": "ComfyUI 服务地址（host:port，例如 192.168.3.78:8188）",
+    "type": "string",
+    "hint": "不含 http://，仅填写主机与端口",
+    "default": "127.0.0.1:8188"
+  },
+  "client_id": {
+    "description": "ComfyUI 客户端 ID",
+    "type": "string",
+    "hint": "用于区分不同客户端的队列，可留默认或自定义 UUID",
+    "default": "astrbot-comfyui-1"
+  },
+  "debug_mode": {
+    "description": "调试模式",
+    "type": "bool",
+    "default": false,
+    "hint": "勾选后，终端会打印发送给 ComfyUI 的完整工作流 JSON，便于排查文本/图片是否正确注入"
+  },
+  "wait_threshold_seconds": {
+    "description": "query_wait 等待阈值（秒）",
+    "type": "int",
+    "default": 30,
+    "hint": "预计剩余 < 该值时阻塞到完成再返回；>= 该值则先等该秒数再返回剩余时间。建议 10～120"
+  },
+  "_webui_section": {
+    "description": "=== 工作流管理页 ===",
+    "type": "text",
+    "invisible": true
+  },
+  "webui_enabled": {
+    "description": "启用工作流管理页",
+    "type": "bool",
+    "default": true,
+    "hint": "开启后可在浏览器中上传/列表/备注/重命名/删除工作流 .json 文件"
+  },
+  "webui_host": {
+    "description": "管理页监听地址",
+    "type": "string",
+    "default": "127.0.0.1",
+    "hint": "0.0.0.0 表示允许局域网访问，127.0.0.1 仅本机访问"
+  },
+  "webui_port": {
+    "description": "管理页监听端口",
+    "type": "int",
+    "default": 6187
+  }
+}
