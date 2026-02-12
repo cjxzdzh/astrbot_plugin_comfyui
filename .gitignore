@@ -11,6 +11,7 @@ __pycache__/
 
 # Local-only doc (not for public repo)
 ADD_TO_OFFICIAL_MARKET.md
+PUBLISH.md
 
 # Local-only script and metadata (do not push to GitHub)
 publish_to_github.ps1
