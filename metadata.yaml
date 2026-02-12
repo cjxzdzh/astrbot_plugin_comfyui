@@ -1,6 +1,0 @@
-name: astrbot_plugin_comfyui
-display_name: ComfyUI 工作流 (LLM 工具)
-description: 将 ComfyUI 工作流封装为 LLM 可调用的工具，支持配置上传/管理、工作流说明、执行/队列查询/等待策略
-version: "1.0.0"
-author: ""
-repo: "https://github.com/cjxzdzh/astrbot_plugin_comfyui"
