@@ -5,7 +5,7 @@
 """
 import re
 from pathlib import Path
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional
 
 from aiohttp import web
 
@@ -23,8 +23,13 @@ def create_app(
     meta_path: Path,
     load_meta: Callable[[], Dict[str, str]],
     save_meta: Callable[[Dict[str, str]], None],
+    plugin_data_dir: Optional[Path] = None,
 ) -> web.Application:
     app = web.Application()
+    if plugin_data_dir is None:
+        plugin_data_dir = workflows_dir.parent
+    output_media_dir = plugin_data_dir.resolve().parent.parent / "agent" / "comfyui" / "input"
+    tmp_dir = plugin_data_dir / "tmp"
 
     async def list_handler(_: web.Request) -> web.Response:
         """GET /api/list：列出 workflows 目录下所有 .json 及备注。"""
@@ -79,6 +84,8 @@ def create_app(
         description = (body.get("description") or "").strip()
         if not filename or not filename.endswith(".json"):
             return web.json_response({"ok": False, "error": "invalid filename"}, status=400)
+        if not (workflows_dir / filename).exists():
+            return web.json_response({"ok": False, "error": "file not found in workflows"}, status=404)
         meta = load_meta()
         meta[filename] = description
         save_meta(meta)
@@ -127,6 +134,21 @@ def create_app(
         save_meta(meta)
         return web.json_response({"ok": True})
 
+    async def clear_cache_handler(request: web.Request) -> web.Response:
+        """POST /api/clear_cache：清理本地缓存（data/agent/comfyui/input 与插件 tmp），防止图片/视频过多占用空间。"""
+        await request.read()
+        deleted = 0
+        for d in (output_media_dir, tmp_dir):
+            if d.exists() and d.is_dir():
+                for f in d.iterdir():
+                    if f.is_file():
+                        try:
+                            f.unlink()
+                            deleted += 1
+                        except Exception:
+                            pass
+        return web.json_response({"ok": True, "deleted": deleted, "dirs": [str(output_media_dir), str(tmp_dir)]})
+
     async def index_handler(_: web.Request) -> web.Response:
         """GET /：返回管理页 HTML。"""
         html = _INDEX_HTML
@@ -138,6 +160,7 @@ def create_app(
     app.router.add_post("/api/description", description_handler)
     app.router.add_post("/api/rename", rename_handler)
     app.router.add_post("/api/delete", delete_handler)
+    app.router.add_post("/api/clear_cache", clear_cache_handler)
     return app
 
 
@@ -175,6 +198,8 @@ _INDEX_HTML = """<!DOCTYPE html>
   <div class="upload">
     <input type="file" id="fileInput" accept=".json">
     <button type="button" id="uploadBtn">上传 .json</button>
+    <span style="margin-left: 1rem;"></span>
+    <button type="button" id="clearCacheBtn" class="btn-del" title="删除 data/agent/comfyui/input 与插件 tmp 下的图片/视频缓存，释放空间">清理本地缓存</button>
   </div>
   <div id="msg"></div>
   <table>
@@ -239,10 +264,19 @@ _INDEX_HTML = """<!DOCTYPE html>
       const form = new FormData();
       form.append('file', input.files[0]);
       try {
-        await fetch('/api/upload', { method: 'POST', body: form });
+        const res = await fetch('/api/upload', { method: 'POST', body: form });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { msg(data.error || res.statusText || '上传失败', false); return; }
         msg('上传成功', true);
         input.value = '';
         loadList();
+      } catch (e) { msg(e.message, false); }
+    };
+    document.getElementById('clearCacheBtn').onclick = async () => {
+      if (!confirm('确定清理本地缓存？将删除 data/agent/comfyui/input 与插件 tmp 下的所有文件，释放磁盘空间。')) return;
+      try {
+        const data = await api('/api/clear_cache', {});
+        msg('已删除 ' + (data.deleted || 0) + ' 个缓存文件', true);
       } catch (e) { msg(e.message, false); }
     };
     loadList();
@@ -264,8 +298,11 @@ class ManagementServer:
         meta_path: Path,
         load_meta: Callable[[], Dict[str, str]],
         save_meta: Callable[[Dict[str, str]], None],
+        plugin_data_dir: Optional[Path] = None,
     ):
-        self.app = create_app(workflows_dir, meta_path, load_meta, save_meta)
+        if plugin_data_dir is None:
+            plugin_data_dir = workflows_dir.parent
+        self.app = create_app(workflows_dir, meta_path, load_meta, save_meta, plugin_data_dir=plugin_data_dir)
         self._runner: web.AppRunner | None = None
         self._site: web.TCPSite | None = None
         self._started = False

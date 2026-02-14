@@ -1,6 +1,6 @@
 {
   "server_ip": {
-    "description": "ComfyUI 服务地址（host:port，例如 192.168.3.78:8188）",
+    "description": "ComfyUI 服务地址（host:port，例如 192.168.x.x:8188）",
     "type": "string",
     "hint": "不含 http://，仅填写主机与端口",
     "default": "127.0.0.1:8188"

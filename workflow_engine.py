@@ -12,12 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 
-# 使用 AstrBot 的 logger
-try:
-    from astrbot.api import logger
-except ImportError:
-    import logging
-    logger = logging.getLogger("comfyui")
+from astrbot.api import logger
 
 
 def parse_workflow_filename(filename: str) -> Optional[Dict[str, Any]]:
@@ -151,23 +146,25 @@ class ComfyUIWorkflow:
         base64_images = base64_images or []
         texts = texts or []
         videos = videos or []
-        future: asyncio.Future = asyncio.get_event_loop().create_future()
+        future: asyncio.Future = asyncio.get_running_loop().create_future()
         self._queue.append((base64_images, texts, videos, extract_text, future))
         if not self._processing:
             asyncio.create_task(self._process_queue())
         return await future
 
     async def _process_queue(self) -> None:
-        while self._queue:
-            self._processing = True
-            base64_images, texts, videos, extract_text, future = self._queue.popleft()
-            try:
-                result = await self._run_workflow(base64_images, texts, videos, extract_text)
-                future.set_result(result)
-            except Exception as e:
-                future.set_exception(e)
-            finally:
-                self._processing = False
+        """单消费者：整段循环期间持锁，避免并发执行导致任务丢失/串线。"""
+        self._processing = True
+        try:
+            while self._queue:
+                base64_images, texts, videos, extract_text, future = self._queue.popleft()
+                try:
+                    result = await self._run_workflow(base64_images, texts, videos, extract_text)
+                    future.set_result(result)
+                except Exception as e:
+                    future.set_exception(e)
+        finally:
+            self._processing = False
 
     def _replace_base64_images(self, data: Any, base64_images: List[str]) -> Tuple[Any, int]:
         """仅替换 class_type 为 ETN_LoadImageBase64 的节点（界面标题 Load Image (Base64)），传入 base64 到其 image 输入。其他一律不修改。"""

@@ -1,19 +1,43 @@
 # AstrBot ComfyUI 工作流插件
 
-本插件**完整由 AI 创建与制作**（需求分析、架构设计、代码实现、文档与发布流程均在 AI 辅助下完成）。
+将 ComfyUI 工作流封装为 LLM 可调用的工具。**向 BOT 描述你的目的，它会自动检查可用工作流并调用，最终将图片/视频等产物发送给你。**
 
-将 ComfyUI 工作流封装为 LLM 可调用的工具，支持在插件配置界面中管理工作流文件、为每个工作流填写说明（供 LLM 选择），并实现「执行 / 查询工作流列表 / 等待查询 / ComfyUI 状态」四类能力。
+> 已验证 **Ubuntu Server** 上部署可用。
 
 ---
 
-## 目标功能
+## 面向用户：能做什么、怎么用
 
-**任意**在 ComfyUI 上能跑通的工作流，只要把「需要由 LLM/用户传入」的**文本、图片、视频**入口，换成约定好的几类节点（Simple String、ETN_LoadImageBase64、VHS_LoadVideo），即可接入 AstrBot，由 LLM 自动注入参数并执行。能做什么完全取决于你在 ComfyUI 里设计的工作流本身，本插件不做能力限制。
+### 适用场景
 
-- **约定**：可注入的入口仅限上述三类节点——文本用 Simple String，图片用 Base64 节点，视频用 VHS_LoadVideo；工作流里其他逻辑（模型、采样、ControlNet、多步推理等）一律保持原样。
+- **文生图**：用文字描述，让 BOT 根据可用工作流生成图片
+- **文生视频**：用文字描述，生成视频
+- **图文改图**：发图 + 修改说明，让 BOT 按你的要求修改图片
+
+### 使用方式
+
+直接向 BOT 说出你的需求即可，无需记忆命令或工作流名。BOT 会：
+
+1. 自动检查当前有哪些可用工作流
+2. 根据你的描述选择合适的工作流并调用
+3. 将生成的图片或视频发送给你
+
+### 使用示例
+
+| 你说什么 | 说明 |
+|----------|------|
+| 帮我画一张猫猫动漫图 | 文生图，BOT 会选用文生图工作流并生成 |
+| （引用一条带图的消息）帮我将黑丝改成白丝 | 图文改图，BOT 会取被引用的图并按说明修改 |
+| 之前画的白丝图，脱了吧 | 引用之前 BOT 发的图，继续修改；BOT 会找到该图并调用改图工作流 |
+
+---
+
+## 目标功能（技术说明）
+
+**任意**在 ComfyUI 上能跑通的工作流，只要把「需要由 LLM/用户传入」的**文本、图片、视频**入口，换成约定好的几类节点（Simple String、ETN_LoadImageBase64、VHS_LoadVideo），即可接入 AstrBot，由 LLM 自动注入参数并执行。
+
+- **约定**：可注入的入口仅限上述三类节点；工作流里其他逻辑（模型、采样、ControlNet、多步推理等）一律保持原样。
 - **流程**：在 ComfyUI 中设计好工作流 → 导出 API 格式 JSON → 按规范命名（见第四节）→ 上传到本插件并填写说明，即可被 LLM 选用并调用。
-
-例如：文生图（提示词注入 Simple String）、改图（图 + 修改说明分别注入 Base64 与 Simple String）、多图改图（多张图 + 一段说明）、图生文、风格迁移、视频处理等，只要工作流里用这些节点接好输入，都可以实现。
 
 ---
 
@@ -21,10 +45,14 @@
 
 ### 1.1 AstrBot 插件依赖（可选但推荐）
 
+- **[astrbot_plugin_qq_tools](https://github.com/YUMU1658/astrbot_plugin_qq_tools)**（工具名均为 `qts_` 开头）
+  - 提供 **`qts_get_recent_messages`**、**`qts_get_message_detail`** 等：获取最近消息列表及单条消息详情。
+  - 当用户引用上一条消息中的图/视频（如「把这张图改成雨天」）时，LLM 可先调用 **`qts_get_recent_messages`** 找到对应消息，再用 **`qts_get_message_detail`** 取详情；消息 content 中会包含本插件写入的 **「ComfyUI 图片路径: /path」** / **「ComfyUI 视频路径: /path」**，将该路径传入 `comfyui_execute` 的 **`image_urls`** 即可。**获取最近媒体信息时优先使用 qts_get_recent_messages。**
+
 - **[astrbot_plugin_image_url_base64_to_mcp](https://github.com/Thetail001/astrbot_plugin_image_url_base64_to_mcp)**
   - 提供 LLM 工具 **`get_image_from_context`**：从对话上下文中获取用户发送的图片（URL 或 base64）。
   - 当用户说「改这张图」但当前消息里未带图、或平台未把图片注入到本插件可读的 message 时，LLM 可先调用 `get_image_from_context` 拿到图片 URL，再在 `comfyui_execute` 中传入 **`image_urls=[该 URL]`**，由本插件下载并转为 base64 注入工作流。
-  - 不安装该插件也可使用本插件，但「引用之前消息里的图」进行改图时，需依赖该工具才能稳定拿到图片。
+  - 不安装该插件也可使用本插件，但「引用之前消息里的图」进行改图时，需依赖该工具或上述 qts 工具才能稳定拿到图片。
 
 ### 1.2 Python 依赖
 
@@ -136,7 +164,10 @@
 
 ### 4.4 安全与目录
 
-- **本地图片路径**：`comfyui_execute` 的 `image_urls` 若传入本地路径，仅允许 **插件数据目录内**（`data/plugin_data/astrbot_plugin_comfyui/`）的路径，禁止 `../` 路径穿越。  
+- **本地图片路径**：`comfyui_execute` 的 `image_urls` 若传入本地路径，仅允许以下根目录之下：**插件数据目录**（`data/plugin_data/astrbot_plugin_comfyui/`）、**`data/agent/comfyui/input/`**、**`data/temp/`**（平台/适配器存放用户上传图的临时目录，避免「图在 temp 不被认可」导致 images=0）。建议使用绝对路径。禁止 `../` 路径穿越。
+- **占位符与持久化路径**：发送 ComfyUI 生成的图片/视频时，插件会将其另存到 `data/agent/comfyui/input/` 并在消息中追加「ComfyUI 图片路径: /path」或「ComfyUI 视频路径: /path」。`qts_get_recent_messages` 等返回的 content 会包含该路径，Bot 可解析后作为下一轮 `image_urls` 传入。
+- **清理本地缓存**：工作流管理页提供「清理本地缓存」按钮，可删除 `data/agent/comfyui/input/` 与插件 `tmp/` 下的文件，防止占用过多磁盘空间。  
+- **base64 不传入 LLM**：优先使用 URL 或本地路径；若图片来源工具返回占位符（如 `base64://ASTRBOT_PLUGIN_CACHE_PENDING`），请将占位符传入 `image_urls`，不要将原始 base64 填入工具参数，以免 base64 进入 LLM 上下文。插件侧已对相关日志脱敏。  
 - 插件数据目录：**`data/plugin_data/astrbot_plugin_comfyui/`**，其中 **`workflows/`** 存放工作流 JSON，**`workflow_meta.json`** 存放说明与 text_slots。
 
 ---
